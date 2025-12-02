@@ -24,3 +24,6 @@ consul_ssl: true
 nomad_gc_interval: "1m"
 nomad_gc_disk_usage_threshold: 80
 nomad_gc_inode_usage_threshold: 70
+
+# raw_exec driver (disabled by default for security)
+raw_exec_enabled: false

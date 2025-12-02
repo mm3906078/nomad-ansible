@@ -51,9 +51,16 @@
     - { name: 'net.ipv4.tcp_max_syn_backlog', value: '65535' }
     - { name: 'vm.max_map_count', value: '262144' }
 
+- name: Check if swap is enabled
+  command: swapon --show
+  register: swap_status
+  changed_when: false
+  failed_when: false
+
 - name: Disable swap
   command: swapoff -a
-  changed_when: false
+  when: swap_status.stdout | length > 0
+  changed_when: swap_status.stdout | length > 0
 
 - name: Remove swap from fstab
   lineinfile:

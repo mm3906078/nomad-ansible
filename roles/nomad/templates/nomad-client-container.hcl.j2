@@ -55,7 +55,7 @@ plugin "docker" {
 }
 
 {% if enable_tls | bool %}
-# TLS Configuration for secure communication
+# TLS Configuration for secure communication (mTLS enabled)
 tls {
   http = true
   rpc = true
@@ -65,7 +65,7 @@ tls {
   key_file = "{{ tls_dir }}/nomad.key"
 
   verify_server_hostname = true
-  verify_https_client = false
+  verify_https_client = true
 }
 {% endif %}
 

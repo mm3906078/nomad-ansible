@@ -45,16 +45,18 @@ plugin "exec" {
   }
 }
 
-# Enable raw_exec driver (use with caution - runs with same privileges as Nomad)
+# Enable raw_exec driver (SECURITY WARNING: runs with same privileges as Nomad)
+# Only enable if you understand the security implications and trust all job submitters
+# Consider disabling in production or using exec driver instead
 plugin "raw_exec" {
   config {
-    enabled = true
+    enabled = {{ raw_exec_enabled | default(false) | lower }}
     no_cgroups = false
   }
 }
 
 {% if enable_tls | bool %}
-# TLS Configuration for secure communication
+# TLS Configuration for secure communication (mTLS enabled)
 tls {
   http = true
   rpc = true
@@ -64,7 +66,7 @@ tls {
   key_file = "{{ tls_dir }}/nomad.key"
 
   verify_server_hostname = true
-  verify_https_client = false
+  verify_https_client = true
 }
 {% endif %}
 

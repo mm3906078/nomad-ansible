@@ -8,6 +8,8 @@ ConditionFileNotEmpty={{ nomad_config_dir }}/nomad.hcl
 
 [Service]
 Type=notify
+# Nomad requires root privileges to manage cgroups, namespaces, and task drivers
+# For improved security, ensure proper ACLs and mTLS are configured
 User=root
 Group=root
 ExecStart=/usr/local/bin/nomad agent -config={{ nomad_config_dir }}
