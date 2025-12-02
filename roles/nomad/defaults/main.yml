@@ -1,0 +1,29 @@
+---
+# Nomad role defaults
+nomad_version: "1.7.2"
+nomad_config_dir: "/etc/nomad.d"
+nomad_data_dir: "/opt/nomad/data"
+hashicorp_install_dir: "/opt/hashicorp"
+datacenter: "dc1"
+region: "global"
+enable_tls: true
+tls_dir: "/opt/hashicorp/tls"
+enable_acl: true
+nomad_acl_enabled: true
+nomad_encrypt_key: ""
+nomad_bootstrap_expect: 1
+nomad_retry_join: []
+nomad_log_level: "INFO"
+nomad_ui_enabled: true
+
+# Consul integration
+consul_address: "127.0.0.1:8501"
+consul_ssl: true
+
+# Client settings
+nomad_gc_interval: "1m"
+nomad_gc_disk_usage_threshold: 80
+nomad_gc_inode_usage_threshold: 70
+
+# raw_exec driver (disabled by default for security)
+raw_exec_enabled: false

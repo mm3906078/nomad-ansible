@@ -1,0 +1,64 @@
+---
+# Fabio role - installs and configures Fabio load balancer
+
+- name: Create fabio group
+  group:
+    name: fabio
+    system: true
+
+- name: Create fabio user
+  user:
+    name: fabio
+    group: fabio
+    system: true
+    shell: /bin/false
+    home: "{{ fabio_config_dir }}"
+    create_home: false
+
+- name: Create Fabio directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: fabio
+    group: fabio
+    mode: '0755'
+  loop:
+    - "{{ fabio_config_dir }}"
+    - "{{ hashicorp_install_dir }}"
+
+- name: Download Fabio
+  get_url:
+    url: "https://github.com/fabiolb/fabio/releases/download/v{{ fabio_version }}/fabio-{{ fabio_version }}-linux_amd64"
+    dest: "{{ hashicorp_install_dir }}/fabio"
+    mode: '0755'
+
+- name: Create symbolic link to fabio binary
+  file:
+    src: "{{ hashicorp_install_dir }}/fabio"
+    dest: /usr/local/bin/fabio
+    state: link
+
+- name: Deploy Fabio configuration
+  template:
+    src: fabio.properties.j2
+    dest: "{{ fabio_config_dir }}/fabio.properties"
+    owner: fabio
+    group: fabio
+    mode: '0640'
+  notify: Restart fabio
+
+- name: Deploy Fabio systemd service
+  template:
+    src: fabio.service.j2
+    dest: /etc/systemd/system/fabio.service
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart fabio
+
+- name: Enable and start Fabio service
+  systemd:
+    name: fabio
+    enabled: true
+    state: started
+    daemon_reload: true

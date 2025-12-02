@@ -1,0 +1,130 @@
+---
+# Nomad role - installs and configures Nomad
+
+- name: Create nomad group
+  group:
+    name: nomad
+    system: true
+
+- name: Create nomad user
+  user:
+    name: nomad
+    group: nomad
+    system: true
+    shell: /bin/false
+    home: "{{ nomad_data_dir }}"
+    create_home: false
+
+- name: Download Nomad
+  get_url:
+    url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip"
+    dest: "/tmp/nomad_{{ nomad_version }}.zip"
+    mode: '0644'
+
+- name: Unzip Nomad
+  unarchive:
+    src: "/tmp/nomad_{{ nomad_version }}.zip"
+    dest: "{{ hashicorp_install_dir }}"
+    remote_src: true
+    creates: "{{ hashicorp_install_dir }}/nomad"
+
+- name: Create symbolic link to nomad binary
+  file:
+    src: "{{ hashicorp_install_dir }}/nomad"
+    dest: /usr/local/bin/nomad
+    state: link
+
+- name: Create Nomad directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: nomad
+    group: nomad
+    mode: '0755'
+  loop:
+    - "{{ nomad_config_dir }}"
+    - "{{ nomad_data_dir }}"
+    - "{{ nomad_data_dir }}/plugins"
+
+- name: Generate gossip encryption key
+  command: nomad operator keygen
+  register: nomad_keygen
+  run_once: true
+  delegate_to: "{{ groups['nomad_servers'][0] }}"
+  when: nomad_encrypt_key == ""
+  changed_when: false
+
+- name: Set gossip encryption key fact
+  set_fact:
+    nomad_gossip_key: "{{ nomad_encrypt_key if nomad_encrypt_key != '' else nomad_keygen.stdout }}"
+  run_once: true
+
+- name: Deploy Nomad server configuration
+  template:
+    src: nomad-server.hcl.j2
+    dest: "{{ nomad_config_dir }}/nomad.hcl"
+    owner: nomad
+    group: nomad
+    mode: '0640'
+  notify: Restart nomad
+  when: "'nomad_servers' in group_names"
+
+- name: Deploy Nomad client configuration for container workers
+  template:
+    src: nomad-client-container.hcl.j2
+    dest: "{{ nomad_config_dir }}/nomad.hcl"
+    owner: nomad
+    group: nomad
+    mode: '0640'
+  notify: Restart nomad
+  when: "'container_workers' in group_names"
+
+- name: Deploy Nomad client configuration for systemd workers
+  template:
+    src: nomad-client-systemd.hcl.j2
+    dest: "{{ nomad_config_dir }}/nomad.hcl"
+    owner: nomad
+    group: nomad
+    mode: '0640'
+  notify: Restart nomad
+  when: "'systemd_workers' in group_names"
+
+- name: Deploy Nomad systemd service
+  template:
+    src: nomad.service.j2
+    dest: /etc/systemd/system/nomad.service
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart nomad
+
+- name: Enable and start Nomad service
+  systemd:
+    name: nomad
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# Docker setup for container workers
+- name: Install Docker dependencies
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+  when: "'container_workers' in group_names"
+
+- name: Add nomad user to docker group
+  user:
+    name: nomad
+    groups: docker
+    append: true
+  when: "'container_workers' in group_names"
+  notify: Restart nomad
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: true
+    state: started
+  when: "'container_workers' in group_names"

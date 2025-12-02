@@ -1,0 +1,69 @@
+---
+# Common role - prepares all nodes with common dependencies
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - wget
+      - unzip
+      - jq
+      - gnupg
+      - lsb-release
+      - ca-certificates
+      - apt-transport-https
+      - software-properties-common
+      - python3-pip
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Create HashiCorp installation directory
+  file:
+    path: "{{ hashicorp_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create TLS directory
+  file:
+    path: "{{ tls_dir }}"
+    state: directory
+    mode: '0700'
+  when: enable_tls | bool
+
+- name: Set timezone
+  timezone:
+    name: UTC
+
+- name: Configure sysctl for HashiCorp services
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - { name: 'net.core.somaxconn', value: '65535' }
+    - { name: 'net.ipv4.tcp_max_syn_backlog', value: '65535' }
+    - { name: 'vm.max_map_count', value: '262144' }
+
+- name: Check if swap is enabled
+  command: swapon --show
+  register: swap_status
+  changed_when: false
+  failed_when: false
+
+- name: Disable swap
+  command: swapoff -a
+  when: swap_status.stdout | length > 0
+  changed_when: swap_status.stdout | length > 0
+
+- name: Remove swap from fstab
+  lineinfile:
+    path: /etc/fstab
+    regexp: '^.*swap.*$'
+    state: absent

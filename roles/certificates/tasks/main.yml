@@ -1,0 +1,278 @@
+---
+# Certificates role - generates TLS certificates for secure communication
+
+- name: Install cryptography Python package
+  pip:
+    name: cryptography
+    state: present
+
+- name: Create local TLS directory on controller
+  file:
+    path: "{{ local_tls_dir }}"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Generate CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ local_tls_dir }}/ca.key"
+    size: 4096
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Generate CA certificate signing request
+  community.crypto.openssl_csr:
+    path: "{{ local_tls_dir }}/ca.csr"
+    privatekey_path: "{{ local_tls_dir }}/ca.key"
+    common_name: "{{ ca_common_name }}"
+    basic_constraints:
+      - 'CA:TRUE'
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+      - cRLSign
+    key_usage_critical: true
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Generate CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ local_tls_dir }}/ca.pem"
+    privatekey_path: "{{ local_tls_dir }}/ca.key"
+    csr_path: "{{ local_tls_dir }}/ca.csr"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ ca_validity_days }}d"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+# Generate Consul server certificates
+- name: Generate Consul server private key
+  community.crypto.openssl_privatekey:
+    path: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.key"
+    size: 2048
+  delegate_to: localhost
+  become: false
+  when: "'consul_servers' in group_names"
+
+- name: Generate Consul server CSR
+  community.crypto.openssl_csr:
+    path: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.key"
+    common_name: "server.{{ datacenter }}.consul"
+    subject_alt_name:
+      - "DNS:server.{{ datacenter }}.consul"
+      - "DNS:localhost"
+      - "DNS:{{ inventory_hostname }}"
+      - "IP:{{ ansible_host }}"
+      - "IP:127.0.0.1"
+    extended_key_usage:
+      - serverAuth
+      - clientAuth
+  delegate_to: localhost
+  become: false
+  when: "'consul_servers' in group_names"
+
+- name: Generate Consul server certificate
+  community.crypto.x509_certificate:
+    path: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.pem"
+    csr_path: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.csr"
+    ownca_path: "{{ local_tls_dir }}/ca.pem"
+    ownca_privatekey_path: "{{ local_tls_dir }}/ca.key"
+    provider: ownca
+    ownca_not_after: "+{{ cert_validity_days }}d"
+  delegate_to: localhost
+  become: false
+  when: "'consul_servers' in group_names"
+
+# Generate Consul client certificates
+- name: Generate Consul client private key
+  community.crypto.openssl_privatekey:
+    path: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.key"
+    size: 2048
+  delegate_to: localhost
+  become: false
+  when: "'consul_clients' in group_names"
+
+- name: Generate Consul client CSR
+  community.crypto.openssl_csr:
+    path: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.key"
+    common_name: "client.{{ datacenter }}.consul"
+    subject_alt_name:
+      - "DNS:client.{{ datacenter }}.consul"
+      - "DNS:localhost"
+      - "DNS:{{ inventory_hostname }}"
+      - "IP:{{ ansible_host }}"
+      - "IP:127.0.0.1"
+    extended_key_usage:
+      - clientAuth
+  delegate_to: localhost
+  become: false
+  when: "'consul_clients' in group_names"
+
+- name: Generate Consul client certificate
+  community.crypto.x509_certificate:
+    path: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.pem"
+    csr_path: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.csr"
+    ownca_path: "{{ local_tls_dir }}/ca.pem"
+    ownca_privatekey_path: "{{ local_tls_dir }}/ca.key"
+    provider: ownca
+    ownca_not_after: "+{{ cert_validity_days }}d"
+  delegate_to: localhost
+  become: false
+  when: "'consul_clients' in group_names"
+
+# Generate Nomad server certificates
+- name: Generate Nomad server private key
+  community.crypto.openssl_privatekey:
+    path: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.key"
+    size: 2048
+  delegate_to: localhost
+  become: false
+  when: "'nomad_servers' in group_names"
+
+- name: Generate Nomad server CSR
+  community.crypto.openssl_csr:
+    path: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.key"
+    common_name: "server.{{ region }}.nomad"
+    subject_alt_name:
+      - "DNS:server.{{ region }}.nomad"
+      - "DNS:localhost"
+      - "DNS:{{ inventory_hostname }}"
+      - "IP:{{ ansible_host }}"
+      - "IP:127.0.0.1"
+    extended_key_usage:
+      - serverAuth
+      - clientAuth
+  delegate_to: localhost
+  become: false
+  when: "'nomad_servers' in group_names"
+
+- name: Generate Nomad server certificate
+  community.crypto.x509_certificate:
+    path: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.pem"
+    csr_path: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.csr"
+    ownca_path: "{{ local_tls_dir }}/ca.pem"
+    ownca_privatekey_path: "{{ local_tls_dir }}/ca.key"
+    provider: ownca
+    ownca_not_after: "+{{ cert_validity_days }}d"
+  delegate_to: localhost
+  become: false
+  when: "'nomad_servers' in group_names"
+
+# Generate Nomad client certificates
+- name: Generate Nomad client private key
+  community.crypto.openssl_privatekey:
+    path: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.key"
+    size: 2048
+  delegate_to: localhost
+  become: false
+  when: "'nomad_clients' in group_names"
+
+- name: Generate Nomad client CSR
+  community.crypto.openssl_csr:
+    path: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.csr"
+    privatekey_path: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.key"
+    common_name: "client.{{ region }}.nomad"
+    subject_alt_name:
+      - "DNS:client.{{ region }}.nomad"
+      - "DNS:localhost"
+      - "DNS:{{ inventory_hostname }}"
+      - "IP:{{ ansible_host }}"
+      - "IP:127.0.0.1"
+    extended_key_usage:
+      - clientAuth
+  delegate_to: localhost
+  become: false
+  when: "'nomad_clients' in group_names"
+
+- name: Generate Nomad client certificate
+  community.crypto.x509_certificate:
+    path: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.pem"
+    csr_path: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.csr"
+    ownca_path: "{{ local_tls_dir }}/ca.pem"
+    ownca_privatekey_path: "{{ local_tls_dir }}/ca.key"
+    provider: ownca
+    ownca_not_after: "+{{ cert_validity_days }}d"
+  delegate_to: localhost
+  become: false
+  when: "'nomad_clients' in group_names"
+
+# Distribute certificates to nodes
+- name: Create TLS directory on remote hosts
+  file:
+    path: "{{ tls_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Copy CA certificate to all nodes
+  copy:
+    src: "{{ local_tls_dir }}/ca.pem"
+    dest: "{{ tls_dir }}/ca.pem"
+    mode: '0644'
+
+# Copy Consul server certs
+- name: Copy Consul server certificates
+  copy:
+    src: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.pem"
+    dest: "{{ tls_dir }}/consul.pem"
+    mode: '0644'
+  when: "'consul_servers' in group_names"
+
+- name: Copy Consul server key
+  copy:
+    src: "{{ local_tls_dir }}/consul-server-{{ inventory_hostname }}.key"
+    dest: "{{ tls_dir }}/consul.key"
+    mode: '0600'
+  when: "'consul_servers' in group_names"
+
+# Copy Consul client certs
+- name: Copy Consul client certificates
+  copy:
+    src: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.pem"
+    dest: "{{ tls_dir }}/consul.pem"
+    mode: '0644'
+  when: "'consul_clients' in group_names"
+
+- name: Copy Consul client key
+  copy:
+    src: "{{ local_tls_dir }}/consul-client-{{ inventory_hostname }}.key"
+    dest: "{{ tls_dir }}/consul.key"
+    mode: '0600'
+  when: "'consul_clients' in group_names"
+
+# Copy Nomad server certs
+- name: Copy Nomad server certificates
+  copy:
+    src: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.pem"
+    dest: "{{ tls_dir }}/nomad.pem"
+    mode: '0644'
+  when: "'nomad_servers' in group_names"
+
+- name: Copy Nomad server key
+  copy:
+    src: "{{ local_tls_dir }}/nomad-server-{{ inventory_hostname }}.key"
+    dest: "{{ tls_dir }}/nomad.key"
+    mode: '0600'
+  when: "'nomad_servers' in group_names"
+
+# Copy Nomad client certs
+- name: Copy Nomad client certificates
+  copy:
+    src: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.pem"
+    dest: "{{ tls_dir }}/nomad.pem"
+    mode: '0644'
+  when: "'nomad_clients' in group_names"
+
+- name: Copy Nomad client key
+  copy:
+    src: "{{ local_tls_dir }}/nomad-client-{{ inventory_hostname }}.key"
+    dest: "{{ tls_dir }}/nomad.key"
+    mode: '0600'
+  when: "'nomad_clients' in group_names"

@@ -1,0 +1,9 @@
+---
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: Restart fabio
+  systemd:
+    name: fabio
+    state: restarted

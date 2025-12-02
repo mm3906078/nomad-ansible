@@ -1,0 +1,22 @@
+[Unit]
+Description=Fabio Load Balancer
+Documentation=https://fabiolb.net/
+Requires=network-online.target
+After=network-online.target consul.service
+Wants=consul.service
+ConditionFileNotEmpty={{ fabio_config_dir }}/fabio.properties
+
+[Service]
+Type=simple
+User=fabio
+Group=fabio
+ExecStart=/usr/local/bin/fabio -cfg {{ fabio_config_dir }}/fabio.properties
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

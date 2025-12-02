@@ -1,0 +1,95 @@
+---
+# Consul role - installs and configures Consul
+
+- name: Create consul group
+  group:
+    name: consul
+    system: true
+
+- name: Create consul user
+  user:
+    name: consul
+    group: consul
+    system: true
+    shell: /bin/false
+    home: "{{ consul_data_dir }}"
+    create_home: false
+
+- name: Download Consul
+  get_url:
+    url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
+    dest: "/tmp/consul_{{ consul_version }}.zip"
+    mode: '0644'
+
+- name: Unzip Consul
+  unarchive:
+    src: "/tmp/consul_{{ consul_version }}.zip"
+    dest: "{{ hashicorp_install_dir }}"
+    remote_src: true
+    creates: "{{ hashicorp_install_dir }}/consul"
+
+- name: Create symbolic link to consul binary
+  file:
+    src: "{{ hashicorp_install_dir }}/consul"
+    dest: /usr/local/bin/consul
+    state: link
+
+- name: Create Consul directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: consul
+    group: consul
+    mode: '0755'
+  loop:
+    - "{{ consul_config_dir }}"
+    - "{{ consul_data_dir }}"
+
+- name: Generate gossip encryption key
+  command: consul keygen
+  register: consul_keygen
+  run_once: true
+  delegate_to: "{{ groups['consul_servers'][0] }}"
+  when: consul_encrypt_key == ""
+  changed_when: false
+
+- name: Set gossip encryption key fact
+  set_fact:
+    consul_gossip_key: "{{ consul_encrypt_key if consul_encrypt_key != '' else consul_keygen.stdout }}"
+  run_once: true
+
+- name: Deploy Consul server configuration
+  template:
+    src: consul-server.hcl.j2
+    dest: "{{ consul_config_dir }}/consul.hcl"
+    owner: consul
+    group: consul
+    mode: '0640'
+  notify: Restart consul
+  when: "'consul_servers' in group_names"
+
+- name: Deploy Consul client configuration
+  template:
+    src: consul-client.hcl.j2
+    dest: "{{ consul_config_dir }}/consul.hcl"
+    owner: consul
+    group: consul
+    mode: '0640'
+  notify: Restart consul
+  when: "'consul_clients' in group_names"
+
+- name: Deploy Consul systemd service
+  template:
+    src: consul.service.j2
+    dest: /etc/systemd/system/consul.service
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart consul
+
+- name: Enable and start Consul service
+  systemd:
+    name: consul
+    enabled: true
+    state: started
+    daemon_reload: true
