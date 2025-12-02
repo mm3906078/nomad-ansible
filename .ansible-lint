@@ -1,0 +1,21 @@
+---
+# Configuration for ansible-lint
+
+# Skip these rules
+skip_list:
+  - var-naming[no-role-prefix]  # Variable naming convention is flexible
+  - fqcn[action-core]           # Allow short module names
+  - fqcn[action]                # Allow short module names
+  - name[casing]                # Allow flexible task naming
+
+# Warn but don't fail on these
+warn_list:
+  - experimental  # All experimental rules
+
+# Enable offline mode to not require internet
+offline: true
+
+# Don't check roles in collections
+exclude_paths:
+  - .cache/
+  - .git/

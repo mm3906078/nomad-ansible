@@ -1,0 +1,22 @@
+---
+# Fabio role defaults
+fabio_version: "1.6.3"
+fabio_config_dir: "/etc/fabio"
+hashicorp_install_dir: "/opt/hashicorp"
+enable_tls: true
+tls_dir: "/opt/hashicorp/tls"
+
+# UI and LB ports
+fabio_ui_port: 9998
+fabio_lb_port: 9999
+
+# Consul configuration
+consul_address: "127.0.0.1:8501"
+consul_ssl: true
+
+# Logging
+fabio_log_level: "INFO"
+
+# Metrics
+fabio_metrics_target: "prometheus"
+fabio_metrics_prefix: "fabio"

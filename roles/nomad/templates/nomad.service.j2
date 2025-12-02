@@ -1,0 +1,25 @@
+[Unit]
+Description=Nomad Workload Orchestrator
+Documentation=https://www.nomadproject.io/
+Requires=network-online.target
+After=network-online.target consul.service
+Wants=consul.service
+ConditionFileNotEmpty={{ nomad_config_dir }}/nomad.hcl
+
+[Service]
+Type=notify
+User=root
+Group=root
+ExecStart=/usr/local/bin/nomad agent -config={{ nomad_config_dir }}
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+LimitNPROC=infinity
+TasksMax=infinity
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
