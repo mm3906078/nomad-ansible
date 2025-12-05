@@ -8,36 +8,11 @@
   roles:
     - common
 
-- name: Generate and distribute TLS certificates
-  hosts: all
-  become: true
-  roles:
-    - role: certificates
-      when: enable_tls | default(true) | bool
-
 - name: Install and configure Consul servers
   hosts: consul_servers
   become: true
   roles:
     - consul
-
-- name: Wait for Consul cluster to stabilize
-  hosts: consul_servers[0]
-  become: true
-  tasks:
-    - name: Wait for Consul cluster to elect a leader
-      command: consul operator raft list-peers
-      register: consul_peers
-      until: consul_peers.rc == 0
-      retries: 30
-      delay: 5
-      changed_when: false
-      environment:
-        CONSUL_HTTP_ADDR: "{% if enable_tls | default(true) | bool %}https://127.0.0.1:8501{% else %}http://127.0.0.1:8500{% endif %}"
-        CONSUL_CACERT: "{{ tls_dir | default('/opt/hashicorp/tls') }}/ca.pem"
-        CONSUL_CLIENT_CERT: "{{ tls_dir | default('/opt/hashicorp/tls') }}/consul.pem"
-        CONSUL_CLIENT_KEY: "{{ tls_dir | default('/opt/hashicorp/tls') }}/consul.key"
-      when: enable_tls | default(true) | bool
 
 - name: Install and configure Consul clients
   hosts: consul_clients
@@ -50,24 +25,6 @@
   become: true
   roles:
     - nomad
-
-- name: Wait for Nomad cluster to stabilize
-  hosts: nomad_servers[0]
-  become: true
-  tasks:
-    - name: Wait for Nomad cluster to elect a leader
-      command: nomad server members
-      register: nomad_members
-      until: nomad_members.rc == 0
-      retries: 30
-      delay: 5
-      changed_when: false
-      environment:
-        NOMAD_ADDR: "{% if enable_tls | default(true) | bool %}https://127.0.0.1:4646{% else %}http://127.0.0.1:4646{% endif %}"
-        NOMAD_CACERT: "{{ tls_dir | default('/opt/hashicorp/tls') }}/ca.pem"
-        NOMAD_CLIENT_CERT: "{{ tls_dir | default('/opt/hashicorp/tls') }}/nomad.pem"
-        NOMAD_CLIENT_KEY: "{{ tls_dir | default('/opt/hashicorp/tls') }}/nomad.key"
-      when: enable_tls | default(true) | bool
 
 - name: Install and configure Nomad clients
   hosts: nomad_clients

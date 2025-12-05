@@ -18,9 +18,6 @@ server {
   enabled = true
   bootstrap_expect = {{ nomad_bootstrap_expect }}
 
-  # Gossip encryption for secure server-to-server communication
-  encrypt = "{{ hostvars[groups['nomad_servers'][0]]['nomad_gossip_key'] }}"
-
   # Server join configuration for multi-master setup
   server_join {
     retry_join = {{ nomad_retry_join | to_json }}
@@ -29,39 +26,9 @@ server {
   }
 }
 
-{% if enable_tls | bool %}
-# TLS Configuration for secure communication (mTLS enabled)
-tls {
-  http = true
-  rpc = true
-
-  ca_file = "{{ tls_dir }}/ca.pem"
-  cert_file = "{{ tls_dir }}/nomad.pem"
-  key_file = "{{ tls_dir }}/nomad.key"
-
-  verify_server_hostname = true
-  verify_https_client = true
-}
-{% endif %}
-
-{% if nomad_acl_enabled | bool %}
-# ACL Configuration
-acl {
-  enabled = true
-}
-{% endif %}
-
 # Consul Integration
 consul {
-{% if enable_tls | bool %}
-  address = "127.0.0.1:8501"
-  ssl = true
-  ca_file = "{{ tls_dir }}/ca.pem"
-  cert_file = "{{ tls_dir }}/consul.pem"
-  key_file = "{{ tls_dir }}/consul.key"
-{% else %}
   address = "127.0.0.1:8500"
-{% endif %}
   server_service_name = "nomad"
   client_service_name = "nomad-client"
   auto_advertise = true

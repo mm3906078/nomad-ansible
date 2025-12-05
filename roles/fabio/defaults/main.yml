@@ -1,10 +1,8 @@
 ---
 # Fabio role defaults
-fabio_version: "1.6.3"
+fabio_version: "1.6.10"
 fabio_config_dir: "/etc/fabio"
 hashicorp_install_dir: "/opt/hashicorp"
-enable_tls: true
-tls_dir: "/opt/hashicorp/tls"
 
 # UI and LB ports
 fabio_ui_port: 9998

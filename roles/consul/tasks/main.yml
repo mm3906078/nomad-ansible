@@ -45,19 +45,6 @@
     - "{{ consul_config_dir }}"
     - "{{ consul_data_dir }}"
 
-- name: Generate gossip encryption key
-  command: consul keygen
-  register: consul_keygen
-  run_once: true
-  delegate_to: "{{ groups['consul_servers'][0] }}"
-  when: consul_encrypt_key == ""
-  changed_when: false
-
-- name: Set gossip encryption key fact
-  set_fact:
-    consul_gossip_key: "{{ consul_encrypt_key if consul_encrypt_key != '' else consul_keygen.stdout }}"
-  run_once: true
-
 - name: Deploy Consul server configuration
   template:
     src: consul-server.hcl.j2
@@ -84,7 +71,6 @@
     dest: /etc/systemd/system/consul.service
     mode: '0644'
   notify:
-    - Reload systemd
     - Restart consul
 
 - name: Enable and start Consul service

@@ -3,6 +3,7 @@ generated_certs/
 
 # Ansible retry files
 *.retry
+.venv/
 
 # Python cache
 __pycache__/

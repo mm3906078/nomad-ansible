@@ -53,7 +53,6 @@
     dest: /etc/systemd/system/fabio.service
     mode: '0644'
   notify:
-    - Reload systemd
     - Restart fabio
 
 - name: Enable and start Fabio service

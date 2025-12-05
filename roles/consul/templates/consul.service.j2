@@ -6,7 +6,8 @@ After=network-online.target
 ConditionFileNotEmpty={{ consul_config_dir }}/consul.hcl
 
 [Service]
-Type=notify
+Type=exec
+TimeoutStartSec=120
 User=consul
 Group=consul
 ExecStart=/usr/local/bin/consul agent -config-dir={{ consul_config_dir }}

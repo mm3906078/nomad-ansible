@@ -113,10 +113,6 @@ consul_version: "1.17.1"
 nomad_version: "1.7.2"
 fabio_version: "1.6.3"
 
-# Security settings
-enable_tls: true
-enable_acl: true
-
 # Pre-generated encryption keys (optional - will be auto-generated if empty)
 consul_encrypt_key: ""
 nomad_encrypt_key: ""
@@ -198,20 +194,6 @@ Fabio provides:
 2. **Gossip Encryption**: Cluster gossip is encrypted
 3. **ACLs**: Access Control Lists are enabled by default
 4. **Certificate Rotation**: Certificates are valid for 1 year (configurable)
-
-## Post-Installation
-
-### Bootstrap ACLs
-
-After deployment, bootstrap ACLs:
-
-```bash
-# Consul ACL Bootstrap
-consul acl bootstrap
-
-# Nomad ACL Bootstrap
-nomad acl bootstrap
-```
 
 ### Verify Cluster Status
 

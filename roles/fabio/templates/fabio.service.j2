@@ -8,6 +8,7 @@ ConditionFileNotEmpty={{ fabio_config_dir }}/fabio.properties
 
 [Service]
 Type=simple
+TimeoutStartSec=60
 User=fabio
 Group=fabio
 ExecStart=/usr/local/bin/fabio -cfg {{ fabio_config_dir }}/fabio.properties

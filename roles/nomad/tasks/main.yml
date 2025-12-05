@@ -45,19 +45,7 @@
     - "{{ nomad_config_dir }}"
     - "{{ nomad_data_dir }}"
     - "{{ nomad_data_dir }}/plugins"
-
-- name: Generate gossip encryption key
-  command: nomad operator keygen
-  register: nomad_keygen
-  run_once: true
-  delegate_to: "{{ groups['nomad_servers'][0] }}"
-  when: nomad_encrypt_key == ""
-  changed_when: false
-
-- name: Set gossip encryption key fact
-  set_fact:
-    nomad_gossip_key: "{{ nomad_encrypt_key if nomad_encrypt_key != '' else nomad_keygen.stdout }}"
-  run_once: true
+    - "/opt/nomad/volumes/shared"
 
 - name: Deploy Nomad server configuration
   template:
@@ -95,7 +83,6 @@
     dest: /etc/systemd/system/nomad.service
     mode: '0644'
   notify:
-    - Reload systemd
     - Restart nomad
 
 - name: Enable and start Nomad service

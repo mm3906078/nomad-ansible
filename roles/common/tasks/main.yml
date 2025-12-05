@@ -1,11 +1,8 @@
 ---
-# Common role - prepares all nodes with common dependencies
-
 - name: Update apt cache
   apt:
     update_cache: true
     cache_valid_time: 3600
-  when: ansible_os_family == "Debian"
 
 - name: Install common packages
   apt:
@@ -21,20 +18,12 @@
       - software-properties-common
       - python3-pip
     state: present
-  when: ansible_os_family == "Debian"
 
 - name: Create HashiCorp installation directory
   file:
     path: "{{ hashicorp_install_dir }}"
     state: directory
     mode: '0755'
-
-- name: Create TLS directory
-  file:
-    path: "{{ tls_dir }}"
-    state: directory
-    mode: '0700'
-  when: enable_tls | bool
 
 - name: Set timezone
   timezone:

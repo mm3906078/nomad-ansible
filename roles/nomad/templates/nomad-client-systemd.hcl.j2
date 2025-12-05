@@ -51,43 +51,12 @@ plugin "exec" {
 plugin "raw_exec" {
   config {
     enabled = {{ raw_exec_enabled | default(false) | lower }}
-    no_cgroups = false
   }
 }
 
-{% if enable_tls | bool %}
-# TLS Configuration for secure communication (mTLS enabled)
-tls {
-  http = true
-  rpc = true
-
-  ca_file = "{{ tls_dir }}/ca.pem"
-  cert_file = "{{ tls_dir }}/nomad.pem"
-  key_file = "{{ tls_dir }}/nomad.key"
-
-  verify_server_hostname = true
-  verify_https_client = true
-}
-{% endif %}
-
-{% if nomad_acl_enabled | bool %}
-# ACL Configuration
-acl {
-  enabled = true
-}
-{% endif %}
-
 # Consul Integration
 consul {
-{% if enable_tls | bool %}
-  address = "127.0.0.1:8501"
-  ssl = true
-  ca_file = "{{ tls_dir }}/ca.pem"
-  cert_file = "{{ tls_dir }}/consul.pem"
-  key_file = "{{ tls_dir }}/consul.key"
-{% else %}
   address = "127.0.0.1:8500"
-{% endif %}
   auto_advertise = true
   server_auto_join = true
   client_auto_join = true

@@ -1,9 +1,0 @@
----
-# Certificates role defaults
-local_tls_dir: "{{ playbook_dir }}/generated_certs"
-tls_dir: "/opt/hashicorp/tls"
-ca_common_name: "HashiCorp CA"
-ca_validity_days: 3650
-cert_validity_days: 365
-datacenter: "dc1"
-region: "global"
